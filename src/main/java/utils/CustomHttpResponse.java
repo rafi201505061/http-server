@@ -46,7 +46,7 @@ public class CustomHttpResponse {
 
   public void writeBody(OutputStream out) {
     try {
-      if (body.length > 0) {
+      if (body != null && body.length > 0) {
 
         out.write(body);
       }

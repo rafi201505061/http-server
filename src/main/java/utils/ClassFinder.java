@@ -1,71 +1,68 @@
 package utils;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.Objects;
+import java.util.List;
 
 import annotations.Controller;
 import annotations.Path;
 
 public class ClassFinder {
-  public static MetaData findClasses(String packageName) throws IOException, ClassNotFoundException {
+  public static MetaData findClasses(String packageName) {
     MetaData metaData = new MetaData();
 
-    String packagePath = packageName.replace('.', '/');
-    Enumeration<URL> resources = Thread.currentThread().getContextClassLoader().getResources(packagePath);
-    while (resources.hasMoreElements()) {
-      URL resource = resources.nextElement();
-      File file = new File(URLDecoder.decode(resource.getFile(), "UTF-8"));
-      System.out.println("item = " + resource.getFile() + "  dff = " + file.isDirectory() + "  ddd = " + file.isFile());
-
-      if (file.isDirectory()) {
-        System.out.println("directory = " + resource.getFile());
-
-        findClassesInDirectory(file, packageName, metaData);
-      } else if (file.getName().endsWith(".class")) {
-        String className = packageName + "." + file.getName().substring(0,
-            file.getName().length() - 6);
-        processClass(className, metaData);
+    try {
+      String packagePath = packageName.replace('.', '/');
+      Enumeration<URL> resources = Thread.currentThread().getContextClassLoader().getResources(packagePath);
+      while (resources.hasMoreElements()) {
+        URL resource = resources.nextElement();
+        File file = new File(URLDecoder.decode(resource.getFile(), "UTF-8"));
+        findClasses(file, packageName, metaData);
       }
+    } catch (Exception e) {
+      e.printStackTrace();
     }
+
     return metaData;
   }
 
-  private static void processClass(String className, MetaData metaData) throws ClassNotFoundException {
-    System.out.println("className = " + className);
-
-    Class<?> cls = Class.forName(className);
-    if (cls.isAnnotationPresent(Controller.class)) {
-      System.out.println("controller");
-
-      metaData.addController(className);
-      if (cls.isAnnotationPresent(Path.class)) {
-        String rootPath = cls.getAnnotation(Path.class).value();
-        metaData.addPath(rootPath);
-        for (Method method : cls.getMethods()) {
-          if (method.isAnnotationPresent(Path.class)) {
-            metaData.addPath(rootPath + method.getAnnotation(Path.class).value());
+  private static void processClass(String className, MetaData metaData) {
+    try {
+      Class<?> cls = Class.forName(className);
+      if (cls.isAnnotationPresent(Controller.class)) {
+        metaData.addController(className);
+        if (cls.isAnnotationPresent(Path.class)) {
+          List<String> paths = new ArrayList<>();
+          String rootPath = cls.getAnnotation(Path.class).value();
+          paths.add(rootPath);
+          for (Method method : cls.getMethods()) {
+            if (method.isAnnotationPresent(Path.class)) {
+              paths.add(rootPath + method.getAnnotation(Path.class).value());
+            }
           }
+          metaData.addToControllerPathMapper(className, paths);
         }
       }
+    } catch (Exception e) {
+      System.out.println("PARSE ERROR: " + className);
+      e.printStackTrace();
     }
+
   }
 
-  private static void findClassesInDirectory(File directory, String packageName, MetaData metaData)
-      throws ClassNotFoundException {
-
-    for (File file : Objects.requireNonNull(directory.listFiles())) {
-      if (file.isDirectory()) {
-        System.out.println("directory = " + file.getName());
-
-        findClassesInDirectory(file, packageName + "." + file.getName(), metaData);
-      } else if (file.getName().endsWith(".class")) {
-        String className = packageName + '.' + file.getName().substring(0, file.getName().length() - 6);
-        processClass(className, metaData);
+  private static void findClasses(File directory, String packageName, MetaData metaData) {
+    if (directory.isDirectory()) {
+      for (File file : directory.listFiles()) {
+        if (file.isDirectory()) {
+          findClasses(file, packageName + "." + file.getName(), metaData);
+        } else if (file.getName().endsWith(".class")) {
+          String className = packageName + '.' + file.getName().substring(0, file.getName().length() - 6);
+          processClass(className, metaData);
+        }
       }
     }
   }
