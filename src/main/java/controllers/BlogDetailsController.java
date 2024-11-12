@@ -6,6 +6,8 @@ import java.util.StringTokenizer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 
+import annotations.Controller;
+import annotations.Path;
 import entities.BlogEntity;
 import repositories.BlogRepository;
 import utils.CustomHttpRequest;
@@ -13,7 +15,9 @@ import utils.CustomHttpResponse;
 import utils.HttpMethod;
 import utils.HttpStatus;
 
-public class BlogDetailsController implements Controller {
+@Controller
+@Path("/blogs/{blogId}")
+public class BlogDetailsController implements ControllerBase {
   private BlogRepository blogRepository;
 
   public BlogDetailsController(BlogRepository blogRepository) {
@@ -35,14 +39,17 @@ public class BlogDetailsController implements Controller {
           String jsonResponse = gson.toJson(this.blogRepository.getBlog(id));
           return new CustomHttpResponse(HttpStatus.OK).setBody(jsonResponse.getBytes(), "application/json");
         } else {
-          return new CustomHttpResponse(HttpStatus.OK).setBody("Blog Not Found".getBytes(), "text/plain");
+          return new CustomHttpResponse(HttpStatus.NOT_FOUND).setBody("Blog Not Found".getBytes(), "text/plain");
         }
       }
       case HttpMethod.PATCH:
       case HttpMethod.PUT: {
+        BlogEntity blogEntity = this.blogRepository.getBlog(id);
+        if (blogEntity == null) {
+          return new CustomHttpResponse(HttpStatus.NOT_FOUND).setBody("Blog Not Found".getBytes(), "text/plain");
+        }
         ObjectMapper objectMapper = new ObjectMapper();
 
-        BlogEntity blogEntity;
         try {
           String utf8String = new String(httpRequest.getBody());
           byte[] utf8Bytes = utf8String.getBytes(StandardCharsets.UTF_8);
@@ -58,6 +65,10 @@ public class BlogDetailsController implements Controller {
         }
       }
       case HttpMethod.DELETE: {
+        BlogEntity blogEntity = this.blogRepository.getBlog(id);
+        if (blogEntity == null) {
+          return new CustomHttpResponse(HttpStatus.NOT_FOUND).setBody("Blog Not Found".getBytes(), "text/plain");
+        }
         this.blogRepository.deleteBlog(id);
         return new CustomHttpResponse(HttpStatus.OK);
       }

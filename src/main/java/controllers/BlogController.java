@@ -5,6 +5,8 @@ import java.nio.charset.StandardCharsets;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 
+import annotations.Controller;
+import annotations.Path;
 import entities.BlogEntity;
 import repositories.BlogRepository;
 import utils.CustomHttpRequest;
@@ -12,7 +14,9 @@ import utils.CustomHttpResponse;
 import utils.HttpMethod;
 import utils.HttpStatus;
 
-public class BlogController implements Controller {
+@Controller
+@Path("/blogs")
+public class BlogController implements ControllerBase {
   private BlogRepository blogRepository;
 
   public BlogController(BlogRepository blogRepository) {

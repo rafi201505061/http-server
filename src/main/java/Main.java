@@ -14,9 +14,11 @@ import java.util.concurrent.TimeUnit;
 import controllers.BlogController;
 import controllers.BlogDetailsController;
 import repositories.BlogRepository;
+import utils.ClassFinder;
 import utils.CustomHttpRequest;
 import utils.CustomHttpResponse;
 import utils.HttpStatus;
+import utils.MetaData;
 
 public class Main {
   public static ExecutorService executorService = Executors.newCachedThreadPool();
@@ -26,8 +28,8 @@ public class Main {
     try {
       PrintWriter writer = new PrintWriter(socket.getOutputStream());
       writer.print(response);
-      writer.print(response.getBody());
       writer.flush();
+      response.writeBody(socket.getOutputStream());
     } catch (Exception e) {
       e.printStackTrace();
     } finally {
@@ -48,11 +50,14 @@ public class Main {
       while (stringTokenizer.hasMoreTokens()) {
         tokens.add(stringTokenizer.nextToken());
       }
+      System.out.println(url);
       if (tokens.size() == 1 && tokens.get(0).equalsIgnoreCase("blogs")) {
+        System.out.println("[Matched Controller] = BlogController");
         BlogController blogController = (BlogController) beans.get("blogController");
         sendRequest(socket, blogController.handleRequest(request));
       } else if (tokens.size() == 2 && tokens.get(0).equalsIgnoreCase("blogs")) {
-        BlogDetailsController blogDetailsController = (BlogDetailsController) beans.get("blogDetailsController");
+        System.out.println("[Matched Controller] = BlogDetailsController");
+        BlogDetailsController blogDetailsController = (BlogDetailsController) beans.get("blogDetailsRepository");
         sendRequest(socket, blogDetailsController.handleRequest(request));
       } else {
         sendRequest(socket, new CustomHttpResponse(HttpStatus.NOT_FOUND));
@@ -82,6 +87,12 @@ public class Main {
         }
       }));
       serverSocket.setReuseAddress(true);
+      try {
+        MetaData metaData = ClassFinder.findClasses("controllers");
+        System.out.println(metaData);
+      } catch (ClassNotFoundException e) {
+        e.printStackTrace();
+      }
       beans.put("blogRepository", new BlogRepository());
       beans.put("blogController", new BlogController((BlogRepository) beans.get("blogRepository")));
       beans.put("blogDetailsRepository", new BlogDetailsController((BlogRepository) beans.get("blogRepository")));
@@ -93,6 +104,7 @@ public class Main {
             handleRequests(clientSocket);
           });
         } catch (Exception e) {
+          e.printStackTrace();
         }
 
       }

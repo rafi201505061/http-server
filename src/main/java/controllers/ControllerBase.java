@@ -3,6 +3,6 @@ package controllers;
 import utils.CustomHttpRequest;
 import utils.CustomHttpResponse;
 
-public interface Controller {
+public interface ControllerBase {
   public CustomHttpResponse handleRequest(CustomHttpRequest httpRequest);
 }
